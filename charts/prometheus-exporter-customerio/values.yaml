@@ -8,7 +8,7 @@ exporter:
   signingSecret: ""
 
 image:
-  repository: prometheus-exporter-customerio
+  repository: ianks/prometheus-exporter-customerio
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tag: ""
