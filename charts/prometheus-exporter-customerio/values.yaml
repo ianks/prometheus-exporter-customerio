@@ -45,8 +45,6 @@ service:
 
 ingress:
   enabled: false
-  paths: 
-    - /track
   annotations: {}
     # kubernetes.io/ingress.class: nginx
     # kubernetes.io/tls-acme: "true"
