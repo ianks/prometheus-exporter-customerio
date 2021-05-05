@@ -4,6 +4,9 @@
 
 replicaCount: 1
 
+exporter:
+  signingSecret: ""
+
 image:
   repository: prometheus-exporter-customerio
   pullPolicy: IfNotPresent

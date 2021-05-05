@@ -122,16 +122,20 @@ func main() {
 		os.Exit(1)
 	}
 
-	handlerFunc := newHandler()
+	registry.MustRegister(eventCounter)
 
 	// This section will start the HTTP server and expose
 	// any metrics on the /metrics endpoint.
 	// Expose the registered metrics via HTTP.
-	http.Handle("/metrics", promhttp.InstrumentMetricHandler(prometheus.DefaultRegisterer, handlerFunc))
+	http.Handle("/metrics", promhttp.InstrumentMetricHandler(prometheus.DefaultRegisterer, newHandler()))
+
+	// Handler for the incoming webhooks from customerio
 	http.HandleFunc("/track", trackWebhookEvent)
 
-	// Register the metrics
-	registry.MustRegister(eventCounter)
+	// Health checks
+	http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("OK"))
+	})
 
 	log.Println("INFO: Beginning to serve on port :8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
