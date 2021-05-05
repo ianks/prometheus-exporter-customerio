@@ -4,7 +4,7 @@ set -euo pipefail
 
 version="$1"
 git_tag="v$version"
-docker_tag="ianks/prometheus-exporter-customerio:$git_tag"
+docker_tag="ianks/prometheus-exporter-customerio:$version"
 
 fastmod "version: .*" "version: $version" ./charts/prometheus-exporter-customerio/Chart.yaml
 fastmod "appVersion: .*" "appVersion: $version" ./charts/prometheus-exporter-customerio/Chart.yaml
