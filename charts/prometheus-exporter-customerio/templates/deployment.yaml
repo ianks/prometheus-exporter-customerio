@@ -33,6 +33,12 @@ spec:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: WEBHOOK_SIGNING_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "prometheus-exporter-customerio.fullname" . }}
+                  key: signing-secret
           ports:
             - name: http
               containerPort: 8080
