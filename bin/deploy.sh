@@ -6,8 +6,8 @@ version="$1"
 git_tag="v$version"
 docker_tag="ianks/prometheus-exporter-customerio:$git_tag"
 
-fastmod "version: 0.1.2" "version: $version" ./charts
-fastmod "appVersion: 0.1.2" "version: $version" ./charts
+fastmod "version: .*" "version: $version" ./charts/prometheus-exporter-customerio/Chart.yaml
+fastmod "appVersion: .*" "appVersion: $version" ./charts/prometheus-exporter-customerio/Chart.yaml
 
 git commit -am "Bump to $git_tag :confetti_ball:"
 git push origin master
