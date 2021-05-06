@@ -16,6 +16,41 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
+type LogEntry struct {
+	Message  string `json:"message"`
+	Severity string `json:"severity,omitempty"`
+}
+
+// String renders an entry structure to the JSON format expected by Cloud Logging.
+func (e LogEntry) String() string {
+	if e.Severity == "" {
+		e.Severity = "INFO"
+	}
+	out, err := json.Marshal(e)
+	if err != nil {
+		log.Printf("json.Marshal: %v", err)
+	}
+	return string(out)
+}
+
+func logError(msg string) {
+	log.Println(LogEntry{
+		Severity: "ERROR",
+		Message:  msg,
+	})
+}
+
+type WebhookEvent struct {
+	ObjectType string      `json:"object_type"`
+	Metric     string      `json:"metric"`
+	Timestamp  int         `json:"timestamp"`
+	Data       WebhookData `json:"data"`
+}
+
+type WebhookData struct {
+	FailureMessage string `json:"failure_message"`
+}
+
 var (
 	eventCounter = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
@@ -67,12 +102,6 @@ func newHandler() http.HandlerFunc {
 	}
 }
 
-type WebhookEvent struct {
-	ObjectType string `json:"object_type"`
-	Metric     string `json:"metric"`
-	Timestamp  int    `json:"timestamp"`
-}
-
 func trackWebhookEvent(w http.ResponseWriter, r *http.Request) {
 	// Declare a new Person struct.
 	var e WebhookEvent
@@ -81,14 +110,14 @@ func trackWebhookEvent(w http.ResponseWriter, r *http.Request) {
 	ts, err := strconv.Atoi(r.Header.Get("X-CIO-Timestamp"))
 
 	if err != nil {
-		log.Printf("ERROR: Could not decode X-CIO-Timestamp: %s\n", err.Error())
+		logError("ERROR: Could not decode X-CIO-Timestamp: " + err.Error())
 		http.Error(w, "Could not decode X-CIO-Timestamp", http.StatusBadRequest)
 		return
 	}
 
 	bodyBytes, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		log.Printf("ERROR: Could not read request body: %s\n", err.Error())
+		logError("ERROR: Could not read request body: " + err.Error())
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -96,7 +125,7 @@ func trackWebhookEvent(w http.ResponseWriter, r *http.Request) {
 	validSig, err := checkSignature(signingSecret, signature, ts, bodyBytes)
 
 	if validSig != true {
-		log.Printf("ERROR: Invalid signature: %s\n", err.Error())
+		logError("ERROR: Invalid signature: " + err.Error())
 		http.Error(w, "Invalid signature", http.StatusUnauthorized)
 		return
 	}
@@ -106,9 +135,18 @@ func trackWebhookEvent(w http.ResponseWriter, r *http.Request) {
 	err = json.Unmarshal(bodyBytes, &e)
 
 	if err != nil {
-		log.Printf("ERROR: Could not decode webhook JSON")
+		logError("ERROR: Could not decode webhook JSON")
 		http.Error(w, "Could not decode webhook JSON", http.StatusBadRequest)
 		return
+	}
+
+	// Log request if error
+	if e.Data.FailureMessage != "" {
+		outJson := map[string]interface{}{}
+		json.Unmarshal([]byte(bodyBytes), &outJson)
+		outJson["severity"] = "ERROR"
+		outJson["message"] = e.Data.FailureMessage
+		log.Println(json.Marshal(outJson))
 	}
 
 	go func() {
@@ -118,9 +156,12 @@ func trackWebhookEvent(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	if signingSecret == "" {
-		log.Fatal("Must set WEBHOOK_SIGNING_SECRET environment variable")
+		log.Fatal(LogEntry{Message: "Must set WEBHOOK_SIGNING_SECRET environment variable", Severity: "FATAL"})
 		os.Exit(1)
 	}
+
+	// Use structured logging
+	log.SetFlags(0)
 
 	registry.MustRegister(eventCounter)
 
@@ -137,6 +178,6 @@ func main() {
 		w.Write([]byte("OK"))
 	})
 
-	log.Println("INFO: Beginning to serve on port :8080")
+	log.Println(LogEntry{Message: "Beginning to serve on port :8080"})
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
