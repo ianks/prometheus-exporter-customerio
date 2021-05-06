@@ -124,7 +124,11 @@ func logEvent(e WebhookEvent, bodyBytes []byte) {
 	json.Unmarshal([]byte(bodyBytes), &outJson)
 	outJson["severity"] = "ERROR"
 	outJson["message"] = e.Data.FailureMessage
-	log.Println(json.Marshal(outJson))
+	out, err := json.Marshal(outJson)
+
+	if err == nil {
+		log.Println(string(out))
+	}
 }
 
 func trackWebhookEvent(w http.ResponseWriter, r *http.Request) {
@@ -175,15 +179,20 @@ func trackWebhookEvent(w http.ResponseWriter, r *http.Request) {
 	}()
 }
 
-func main() {
+func init() {
+	// Use structured logging
+	log.SetFlags(0)
+
 	if signingSecret == "" {
 		log.Fatal(LogEntry{Message: "Must set WEBHOOK_SIGNING_SECRET environment variable", Severity: "FATAL"})
 		os.Exit(1)
 	}
 
-	// Use structured logging
-	log.SetFlags(0)
+	logEvent(WebhookEvent{ObjectType: "email", Metric: "clicked", Timestamp: 123}, []byte("{\"foo\": 123}"))
 
+}
+
+func main() {
 	registry.MustRegister(eventCounter)
 
 	// This section will start the HTTP server and expose
