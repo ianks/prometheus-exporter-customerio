@@ -48,10 +48,10 @@ type WebhookEvent struct {
 }
 
 type WebhookData struct {
-	FailureMessage string `json:"failure_message"`
-	BroadcastId    string `json:"broadcast_id"`
-	CampaignId     string `json:"campaign_id"`
-	NewsletterId   string `json:"newsletter_id"`
+	FailureMessage string `json:"failure_message,omitempty"`
+	BroadcastId    string `json:"broadcast_id,omitempty"`
+	CampaignId     string `json:"campaign_id,omitempty"`
+	NewsletterId   string `json:"newsletter_id,omitempty"`
 }
 
 var (
