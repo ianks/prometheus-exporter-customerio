@@ -188,13 +188,10 @@ func init() {
 		os.Exit(1)
 	}
 
-	logEvent(WebhookEvent{ObjectType: "email", Metric: "clicked", Timestamp: 123}, []byte("{\"foo\": 123}"))
-
+	registry.MustRegister(eventCounter)
 }
 
 func main() {
-	registry.MustRegister(eventCounter)
-
 	// This section will start the HTTP server and expose
 	// any metrics on the /metrics endpoint.
 	// Expose the registered metrics via HTTP.
