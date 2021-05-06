@@ -49,9 +49,9 @@ type WebhookEvent struct {
 
 type WebhookData struct {
 	FailureMessage string `json:"failure_message,omitempty"`
-	BroadcastId    string `json:"broadcast_id,omitempty"`
-	CampaignId     string `json:"campaign_id,omitempty"`
-	NewsletterId   string `json:"newsletter_id,omitempty"`
+	BroadcastId    *int   `json:"broadcast_id,omitempty"`
+	CampaignId     *int   `json:"campaign_id,omitempty"`
+	NewsletterId   *int   `json:"newsletter_id,omitempty"`
 }
 
 var (
@@ -108,12 +108,12 @@ func newHandler() http.HandlerFunc {
 func extractEntityId(e WebhookEvent) string {
 	entityId := ""
 
-	if e.Data.BroadcastId != "" {
-		entityId = e.Data.BroadcastId
-	} else if e.Data.CampaignId != "" {
-		entityId = e.Data.CampaignId
-	} else if e.Data.NewsletterId != "" {
-		entityId = e.Data.NewsletterId
+	if e.Data.BroadcastId != nil {
+		entityId = strconv.Itoa(*e.Data.BroadcastId)
+	} else if e.Data.CampaignId != nil {
+		entityId = strconv.Itoa(*e.Data.CampaignId)
+	} else if e.Data.NewsletterId != nil {
+		entityId = strconv.Itoa(*e.Data.NewsletterId)
 	}
 
 	return entityId
