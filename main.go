@@ -160,7 +160,7 @@ func trackWebhookEvent(w http.ResponseWriter, r *http.Request) {
 	err = json.Unmarshal(bodyBytes, &e)
 
 	if err != nil {
-		logError("ERROR: Could not decode webhook JSON")
+		logError("ERROR: Could not decode webhook JSON: " + err.Error())
 		http.Error(w, "Could not decode webhook JSON", http.StatusBadRequest)
 		return
 	}
