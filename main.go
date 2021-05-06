@@ -49,6 +49,9 @@ type WebhookEvent struct {
 
 type WebhookData struct {
 	FailureMessage string `json:"failure_message"`
+	BroadcastId    string `json:"broadcast_id"`
+	CampaignId     string `json:"campaign_id"`
+	NewsletterId   string `json:"newsletter_id"`
 }
 
 var (
@@ -58,7 +61,7 @@ var (
 			Name:      "event_count",
 			Help:      "A counter for CustomerIO reporting webhook events",
 		},
-		[]string{"type", "action"},
+		[]string{"type", "action", "entity_id"},
 	)
 
 	registry      = prometheus.NewRegistry()
@@ -102,6 +105,28 @@ func newHandler() http.HandlerFunc {
 	}
 }
 
+func extractEntityId(e WebhookEvent) string {
+	entityId := ""
+
+	if e.Data.BroadcastId != "" {
+		entityId = e.Data.BroadcastId
+	} else if e.Data.CampaignId != "" {
+		entityId = e.Data.CampaignId
+	} else if e.Data.NewsletterId != "" {
+		entityId = e.Data.NewsletterId
+	}
+
+	return entityId
+}
+
+func logEvent(e WebhookEvent, bodyBytes []byte) {
+	outJson := map[string]interface{}{}
+	json.Unmarshal([]byte(bodyBytes), &outJson)
+	outJson["severity"] = "ERROR"
+	outJson["message"] = e.Data.FailureMessage
+	log.Println(json.Marshal(outJson))
+}
+
 func trackWebhookEvent(w http.ResponseWriter, r *http.Request) {
 	// Declare a new Person struct.
 	var e WebhookEvent
@@ -142,15 +167,11 @@ func trackWebhookEvent(w http.ResponseWriter, r *http.Request) {
 
 	// Log request if error
 	if e.Data.FailureMessage != "" {
-		outJson := map[string]interface{}{}
-		json.Unmarshal([]byte(bodyBytes), &outJson)
-		outJson["severity"] = "ERROR"
-		outJson["message"] = e.Data.FailureMessage
-		log.Println(json.Marshal(outJson))
+		logEvent(e, bodyBytes)
 	}
 
 	go func() {
-		eventCounter.WithLabelValues(e.ObjectType, e.Metric).Inc()
+		eventCounter.WithLabelValues(e.ObjectType, e.Metric, extractEntityId(e)).Inc()
 	}()
 }
 
